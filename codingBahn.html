@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codingbahn - The Future of Embedded</title>
+    
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Three.js for 3D graphics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        
+        /* Define Cyberpunk Colors for Reusability */
+        :root {
+            --color-primary-dark: #000000;
+            --color-card-dark: #0a0a0a;
+            --color-text-light: #E5E5E5;
+            --color-accent-blue: #00BFFF; 
+        }
+
+        /* Custom Styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-primary-dark);
+            color: var(--color-text-light);
+            transition: opacity 1s ease-in-out;
+            overflow-x: hidden; 
+        }
+
+        /* ------------------- */
+        /* PRELOADER STYLES */
+        /* ------------------- */
+        #preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--color-primary-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 1s ease-in-out, visibility 1s;
+        }
+
+        #preloader.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loader-logo {
+            font-size: 4rem;
+            color: var(--color-accent-blue); 
+            animation: pulse-flicker 1.5s infinite alternate;
+            text-shadow: 0 0 15px rgba(0, 191, 255, 0.7); 
+        }
+
+        @keyframes pulse-flicker {
+            0% { opacity: 0.5; transform: scale(0.95); }
+            100% { opacity: 1; transform: scale(1.05); }
+        }
+        
+        /* ------------------- */
+        /* HERO STYLES - Three.js Canvas */
+        /* ------------------- */
+        #home {
+            position: relative; 
+            overflow: hidden;
+            background-color: var(--color-primary-dark); 
+        }
+
+        #hero-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        /* Overlay for better text contrast over the dynamic background */
+        #home::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            /* Semi-transparent dark overlay */
+            background: rgba(0, 0, 0, 0.4); 
+            z-index: 10; 
+        }
+        
+        /* Ensure content is above the overlay */
+        .hero-content {
+            position: relative;
+            z-index: 20;
+            /* Center the content vertically within the flex container */
+            margin-top: auto; 
+            margin-bottom: auto;
+        }
+
+        /* ------------------- */
+        /* GENERAL STYLES */
+        /* ------------------- */
+        .section-padding {
+            padding: 6rem 1rem;
+        }
+
+        .gradient-text {
+            /* DEEP BLUE NEON GRADIENT: Bright Cyan to Electric Purple */
+            background: linear-gradient(90deg, var(--color-accent-blue), #8A2BE2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Navigation scroll effect */
+        .scrolled-nav {
+            background-color: rgba(0, 0, 0, 0.95); 
+            box-shadow: 0 4px 10px rgba(0, 191, 255, 0.2); 
+            backdrop-filter: blur(5px);
+        }
+
+        /* Custom glow for interactive elements (using Blue) */
+        .interactive-glow {
+            transition: all 0.3s ease;
+            box-shadow: 0 0 0 rgba(0, 191, 255, 0);
+        }
+        .interactive-glow:hover {
+            box-shadow: 0 0 20px rgba(0, 191, 255, 0.7); 
+        }
+
+        /* Styling for the skills/tools chips inside cards */
+        .skill-chip {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.75rem;
+            line-height: 1rem;
+            font-weight: 500;
+            color: var(--color-accent-blue); 
+            background-color: rgba(0, 191, 255, 0.1); 
+            border: 1px solid var(--color-accent-blue);
+            border-radius: 0.375rem; 
+        }
+    </style>
+</head>
+<body class="antialiased opacity-0">
+
+    <!-- 1. PRELOADER CONTAINER -->
+    <div id="preloader">
+        <div class="loader-logo">&lt;/&gt;</div>
+    </div>
+
+    <!-- MAIN APPLICATION CONTENT -->
+    <div id="app-content" class="transition-opacity duration-1000">
+        <!-- Navigation Bar -->
+        <header id="navbar" class="fixed top-0 left-0 w-full z-50 transition duration-300">
+            <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
+                <!-- Logo/Brand Name -->
+                <div class="text-2xl font-bold gradient-text">Codingbahn</div>
+                
+                <!-- Desktop Navigation Links -->
+                <div class="hidden md:flex space-x-8 text-sm font-medium">
+                    <a href="#home" class="hover:text-blue-400 transition">Home</a>
+                    <a href="#services" class="hover:text-blue-400 transition">Services</a>
+                    <a href="#expertise" class="hover:text-blue-400 transition">Expertise</a>
+                    <a href="#contact" class="hover:text-blue-400 transition">Contact</a>
+                </div>
+                
+                <!-- Mobile Menu Button (using SVG icon) -->
+                <button id="mobile-menu-button" class="md:hidden text-white focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+            </nav>
+        </header>
+
+        <!-- Mobile Menu Drawer (Hidden by default) -->
+        <div id="mobile-menu" class="fixed top-0 left-0 w-64 h-full bg-[#101010] z-40 transform -translate-x-full transition-transform duration-300 md:hidden">
+            <div class="pt-20 flex flex-col space-y-4 px-4 text-white">
+                <a href="#home" class="py-2 hover:text-blue-400 transition block">Home</a>
+                <a href="#services" class="py-2 hover:text-blue-400 transition block">Services</a>
+                <a href="#expertise" class="py-2 hover:text-blue-400 transition block">Expertise</a>
+                <a href="#contact" class="py-2 hover:text-blue-400 transition block">Contact</a>
+            </div>
+        </div>
+
+        <main>
+            <!-- Home/Hero Section - Interactive 3D Cyber Grid Background -->
+            <section id="home" class="section-padding min-h-screen flex items-center justify-center text-center pt-24 md:pt-0">
+                <!-- Three.js Canvas -->
+                <canvas id="hero-canvas"></canvas>
+                
+                <!-- Hero Content -->
+                <div class="max-w-4xl px-4 hero-content">
+                    <!-- Professional Tagline -->
+                    <p class="text-sm font-semibold tracking-widest text-blue-300 uppercase mb-4 animate-fadeIn">Design. Develop. Deploy. Engineered for Performance.</p>
+                    
+                    <h1 class="text-6xl md:text-8xl font-extrabold mb-4 leading-tight gradient-text animate-slideInFromTop">
+                        The Future of Embedded
+                    </h1>
+                    <h2 class="text-3xl md:text-5xl font-light mb-8 gradient-text animate-slideInFromBottom">
+                        is Held in Your Hand.
+                    </h2>
+                    <p class="text-lg mb-10 max-w-2xl mx-auto text-gray-200 animate-fadeIn delay-500">
+                        Leveraging expert low-level programming and robust hardware integration, we engineer highly reliable and deterministic firmware systems that power the next generation of connected devices, spanning industrial IoT to consumer electronics.
+                    </p>
+                    <!-- CTA Button -->
+                    <a href="#contact" class="inline-block px-8 py-3 bg-blue-600 text-black font-medium rounded-full shadow-lg interactive-glow hover:bg-blue-700 transition duration-300 transform hover:scale-105 animate-fadeIn delay-1000">
+                        START YOUR PROJECT
+                    </a>
+                </div>
+            </section>
+
+            <!-- Services Section - CORE EMBEDDED SERVICES (4 Cards) -->
+            <section id="services" class="section-padding bg-black">
+                <div class="container mx-auto px-4">
+                    <h3 class="text-4xl font-bold text-center mb-12 gradient-text">Core Embedded Systems</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                        
+                        <!-- Service Card 1: Low-Level System Design & RTOS -->
+                        <div class="p-6 bg-stone-900 rounded-xl shadow-2xl interactive-glow flex flex-col border border-blue-500/30">
+                            <div class="text-3xl mb-4 text-blue-400">
+                                <!-- Icon: Low Level -->
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2A10 10 0 1 0 22 12A10 10 0 0 0 12 2ZM7.5 16.5a1.5 1.5 0 1 1 1.5-1.5A1.5 1.5 0 0 1 7.5 16.5Zm0-9a1.5 1.5 0 1 1 1.5-1.5A1.5 1.5 0 0 1 7.5 7.5ZM16.5 16.5a1.5 1.5 0 1 1 1.5-1.5A1.5 1.5 0 0 1 16.5 16.5Zm0-9a1.5 1.5 0 1 1 1.5-1.5A1.5 1.5 0 0 1 16.5 7.5Z"/></svg>
+                            </div>
+                            <h4 class="text-xl font-semibold mb-3 text-white">Low-Level System Design & RTOS</h4>
+                            <p class="text-gray-400 text-sm flex-grow">Soft firmware in C/C++ for bare-metal and RTOS (e.g., FreeRTOS) environments. Focused on ARM/MIPS/RISC-V microcontrollers, ensuring deterministic execution and low power.</p>
+                        </div>
+                        
+                        <!-- Service Card 2: Smart Metering & Utility Tech -->
+                        <div class="p-6 bg-stone-900 rounded-xl shadow-2xl interactive-glow flex flex-col border border-blue-500/30">
+                            <div class="text-3xl mb-4 text-blue-400">
+                                <!-- Icon: Utility/Gauge -->
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2A10 10 0 1 0 22 12A10 10 0 0 0 12 2ZM12 18a6 6 0 1 1 6-6A6 6 0 0 1 12 18Z"/><path d="M12 8a.5.5 0 0 0-.5.5v3.5l2.4 1.4a.5.5 0 0 0 .5-.8L12 11.5Z"/></svg>
+                            </div>
+                            <h4 class="text-xl font-semibold mb-3 text-white">Smart Metering & Utility Tech</h4>
+                            <p class="text-gray-400 text-sm flex-grow">Expertise in designing certified firmware for utility systems (water, gas, electricity). Focus on standards (DLMS/COSEM), high-accuracy data logging, and low-power mesh networks.</p>
+                        </div>
+                        
+                        <!-- Service Card 3: CI/CD, OTA & Fleet Management -->
+                        <div class="p-6 bg-stone-900 rounded-xl shadow-2xl interactive-glow flex flex-col border border-blue-500/30">
+                            <div class="text-3xl mb-4 text-blue-400">
+                                <!-- Icon: Cloud/Update -->
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor"><path d="M19.3 8.35a5.5 5.5 0 0 0-10.9-1.28A6.5 6.5 0 0 0 7 19h12.5a4.5 4.5 0 0 0 .8-8.9ZM16 13h-3v4h-2v-4H8l4-4Z"/></svg>
+                            </div>
+                            <h4 class="text-xl font-semibold mb-3 text-white">CI/CD, OTA & Fleet Management</h4>
+                            <p class="text-gray-400 text-sm flex-grow">Implementation of continuous integration/continuous delivery and tooling tailored for embedded projects. We specialize in robust Over-the-Air (OTA) firmware update systems for efficient, scalable fleet deployment.</p>
+                        </div>
+                        
+                        <!-- Service Card 4: Defense & Strategic Systems -->
+                        <div class="p-6 bg-stone-900 rounded-xl shadow-2xl interactive-glow flex flex-col border border-blue-500/30">
+                            <div class="text-3xl mb-4 text-blue-400">
+                                <!-- Icon: Shield/Defense -->
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12c5.16-1.26 9-6.45 9-12V5L12 1ZM12 11.99a2 2 0 1 0 2 2A2 2 0 0 0 12 11.99Z"/></svg>
+                            </div>
+                            <h4 class="text-xl font-semibold mb-3 text-white">Defense & Strategic Systems</h4>
+                            <p class="text-gray-400 text-sm flex-grow">Specialized development for high-reliability systems (e.g., DoD, DRDO). Our solutions prioritize stringent functional safety, compliance, system security, and contributing to 'Make in India' initiatives.</p>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- Foundational Expertise Section -->
+            <section id="expertise" class="section-padding bg-black">
+                <div class="container mx-auto px-4">
+                    <h3 class="text-4xl font-bold text-center mb-4 gradient-text">Our Foundational Expertise</h3>
+                    <p class="text-center mb-12 max-w-3xl mx-auto text-gray-400">
+                        Our company is new, but our expertise is deep. Our team's prior experience forms the foundation of our capability. Here are examples of the complex, end-to-end systems we have built:
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        
+                        <!-- Expertise Card 1: Real-Time Sensor Data Acquisition -->
+                        <div class="p-6 bg-stone-900 rounded-xl shadow-2xl interactive-glow flex flex-col border border-blue-500/30">
+                            <h4 class="text-xl font-semibold mb-3 text-blue-400">Real-Time Sensor Data Acquisition</h4>
+                            <p class="text-gray-400 text-sm flex-grow mb-4">Developed a high-performance system for telemetry and data acquisition from industrial sensors. The system uses kernel-level and interrupt-safe code for deterministic data collection, guaranteeing sub-millisecond latency processing at the edge.</p>
+                            <div class="pt-2 border-t border-blue-500/30">
+                                <p class="text-xs font-semibold uppercase text-gray-500 mb-2">Skills & Tools:</p>
+                                <span class="skill-chip">RTOS (FreeRTOS)</span>
+                                <span class="skill-chip">C++</span>
+                                <span class="skill-chip">ESP32</span>
+                                <span class="skill-chip">Low Latency Systems</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Expertise Card 2: Secure OTA Update Mechanism -->
+                        <div class="p-6 bg-stone-900 rounded-xl shadow-2xl interactive-glow flex flex-col border border-blue-500/30">
+                            <h4 class="text-xl font-semibold mb-3 text-blue-400">Secure OTA Update Mechanism</h4>
+                            <p class="text-gray-400 text-sm flex-grow mb-4">Architected and deployed a complete secure boot and OTA update system for a fleet of IoT devices. This system manages cryptographic checks, versions, secure rollouts, and device recovery mechanisms, all integrated into a robust CI/CD pipeline.</p>
+                            <div class="pt-2 border-t border-blue-500/30">
+                                <p class="text-xs font-semibold uppercase text-gray-500 mb-2">Skills & Tools:</p>
+                                <span class="skill-chip">CI/CD</span>
+                                <span class="skill-chip">Docker</span>
+                                <span class="skill-chip">Secure Boot</span>
+                                <span class="skill-chip">Embedded C</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Expertise Card 3: DLMS/COSEM Metering Integration -->
+                        <div class="p-6 bg-stone-900 rounded-xl shadow-2xl interactive-glow flex flex-col border border-blue-500/30">
+                            <h4 class="text-xl font-semibold mb-3 text-blue-400">DLMS/COSEM Metering Integration</h4>
+                            <p class="text-gray-400 text-sm flex-grow mb-4">Developed firmware compliant with DLMS/COSEM standards for the new generation of smart meters. This ensures interoperability, highly accurate data exchange, and cryptographic security for utility data across wide-area networks.</p>
+                            <div class="pt-2 border-t border-blue-500/30">
+                                <p class="text-xs font-semibold uppercase text-gray-500 mb-2">Skills & Tools:</p>
+                                <span class="skill-chip">IEC 62056</span>
+                                <span class="skill-chip">Metering Standards</span>
+                                <span class="skill-chip">Cryptography</span>
+                                <span class="skill-chip">Mesh Networking</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Contact Section (Updated) -->
+            <section id="contact" class="section-padding bg-black">
+                <div class="container mx-auto px-4">
+                    <h3 class="text-4xl font-bold text-center mb-12 gradient-text">INITIATE CONTACT</h3>
+                    <div class="max-w-lg mx-auto p-8 bg-stone-900 rounded-xl shadow-2xl border border-blue-500/30 text-center">
+                        
+                        <p class="text-gray-300 mb-6">
+                            Ready to engineer your next high-reliability embedded system? Reach out directly.
+                        </p>
+
+                        <div class="space-y-4">
+                            <!-- Email Link (Updated with codingBahn@hotmail.com) -->
+                            <a href="mailto:codingBahn@hotmail.com" class="flex items-center justify-center p-3 bg-black border border-blue-600 rounded-lg text-blue-400 hover:bg-stone-800 interactive-glow transition duration-300" target="_blank">
+                                <!-- Email Icon SVG -->
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                                <span class="text-lg font-medium">codingBahn@hotmail.com</span>
+                            </a>
+                            
+                            <!-- LinkedIn Link (Placeholder remains) -->
+                            <a href="#" class="flex items-center justify-center p-3 bg-black border border-blue-600 rounded-lg text-blue-400 hover:bg-stone-800 interactive-glow transition duration-300" target="_blank">
+                                <!-- LinkedIn Icon SVG -->
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0H5a5 5 0 0 0-5 5v14a5 5 0 0 0 5 5h14a5 5 0 0 0 5-5V5a5 5 0 0 0-5-5M8 19H5V8h3v11ZM6.5 6.7A1.5 1.5 0 1 1 8 5.2a1.5 1.5 0 0 1-1.5 1.5ZM19 19h-3v-5.6c0-3.37-4-3.53-4 0V19h-3V8h3v1.79c1.68-2.12 5-1.81 5 3.19Z"/></svg>
+                                <span class="text-lg font-medium">Connect on LinkedIn</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Footer -->
+            <footer class="bg-stone-900 py-6 border-t border-blue-500/50">
+                <div class="container mx-auto px-4 text-center text-sm text-gray-500">
+                    &copy; 2025 Codingbahn. ALL RIGHTS RESERVED. // SYSTEM ONLINE.
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <script>
+        // --- GENERAL DOM AND UTILITY LOGIC ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const preloader = document.getElementById('preloader');
+            const body = document.body;
+            
+            // --- PRELOADER LOGIC ---
+            body.style.opacity = '0';
+
+            window.onload = function () {
+                // Initialize the 3D scene only after the window fully loads
+                initThreeJS(); 
+                
+                setTimeout(() => {
+                    preloader.classList.add('hidden');
+                    body.style.opacity = '1'; 
+                }, 2000); // Show content after 2 seconds
+            }
+
+            // Fallback for extremely fast loads
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                if(!preloader.classList.contains('hidden')) {
+                   window.onload();
+                }
+            }
+
+            // --- NAVIGATION LOGIC ---
+            const navbar = document.getElementById('navbar');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            // Scroll Effect
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 50) {
+                    navbar.classList.add('scrolled-nav');
+                } else {
+                    navbar.classList.remove('scrolled-nav');
+                }
+            });
+
+            // Mobile Menu Toggle
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('-translate-x-full');
+            });
+
+            // Close mobile menu when a link is clicked
+            mobileMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('-translate-x-full');
+                });
+            });
+
+            // Smooth Scroll for Navigation
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    // Close mobile menu if open
+                    mobileMenu.classList.add('-translate-x-full'); 
+                    
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+        });
+        
+        // --- THREE.JS LOGIC FOR INTERACTIVE BACKGROUND (CYBER GRID TUNNEL) ---
+        
+        let scene, camera, renderer, container;
+        let gridPlane, gridMaterial;
+        let mouseX = 0, mouseY = 0;
+        let windowHalfX = window.innerWidth / 2;
+        let windowHalfY = window.innerHeight / 2;
+        let isDragging = false;
+        let previousMouseX = 0;
+        let previousMouseY = 0;
+        const targetRotationY = 0;
+        const targetRotationX = 0;
+
+        // Function to initialize the 3D scene
+        function initThreeJS() {
+            container = document.getElementById('home');
+            const canvas = document.getElementById('hero-canvas');
+            
+            // Scene Setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000); // Black background
+
+            // Camera Setup: Narrow field of view for a 'tunnel' feel
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 10;
+            camera.rotation.x = 0; // Look straight ahead
+
+            // Renderer Setup
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            
+            // --- Cyber Grid Creation ---
+            const gridSize = 100;
+            const divisions = 20;
+            const color = 0x00BFFF; // Electric Blue
+
+            // Create a custom grid (PlaneGeometry) and use only Wireframe
+            const geometry = new THREE.PlaneGeometry(gridSize, gridSize, divisions, divisions);
+            gridMaterial = new THREE.MeshBasicMaterial({
+                color: color,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.5,
+                side: THREE.DoubleSide
+            });
+            gridPlane = new THREE.Mesh(geometry, gridMaterial);
+
+            // Position the grid in front of the camera and tilt it slightly
+            gridPlane.rotation.x = Math.PI / 2; // Rotate to lie flat (XZ plane)
+            gridPlane.position.y = -5; // Lower the grid slightly
+            gridPlane.position.z = -50; // Place it far away initially
+
+            scene.add(gridPlane);
+            
+            // Duplicate the grid and rotate for a "tunnel" feel
+            const gridPlane2 = gridPlane.clone();
+            gridPlane2.rotation.x = -Math.PI / 2; 
+            gridPlane2.position.y = 5; 
+            gridPlane2.position.z = -50;
+            scene.add(gridPlane2);
+            
+            // Add point light for central glow effect
+            const pointLight = new THREE.PointLight(0x00BFFF, 2, 50);
+            pointLight.position.set(0, 0, 0);
+            scene.add(pointLight);
+
+
+            // Event Listeners for interaction
+            window.addEventListener('resize', onWindowResize, false);
+            
+            // Mouse Events
+            document.addEventListener('mousemove', onDocumentMouseMove, false);
+            document.addEventListener('mousedown', onDocumentMouseDown, false);
+            document.addEventListener('mouseup', onDocumentMouseUp, false);
+            
+            // Touch Events (for mobile interaction)
+            document.addEventListener('touchstart', onDocumentTouchStart, false);
+            document.addEventListener('touchmove', onDocumentTouchMove, false);
+            document.addEventListener('touchend', onDocumentTouchEnd, false);
+
+            // Start the animation loop
+            animate();
+        }
+
+        // --- INTERACTION HANDLERS ---
+        function onWindowResize() {
+            windowHalfX = window.innerWidth / 2;
+            windowHalfY = window.innerHeight / 2;
+
+            if (camera && renderer && container) {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+        }
+
+        // Mouse Handlers
+        function onDocumentMouseDown(event) {
+            isDragging = true;
+            previousMouseX = event.clientX;
+            previousMouseY = event.clientY;
+        }
+
+        function onDocumentMouseUp() {
+            isDragging = false;
+        }
+
+        function onDocumentMouseMove(event) {
+            if (isDragging) {
+                const deltaX = event.clientX - previousMouseX;
+                const deltaY = event.clientY - previousMouseY;
+
+                // Rotate the camera based on drag
+                camera.rotation.y -= deltaX * 0.005; // Horizontal rotation
+                camera.rotation.x -= deltaY * 0.005; // Vertical rotation
+
+                // Clamp vertical rotation to avoid flipping
+                camera.rotation.x = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, camera.rotation.x));
+
+                previousMouseX = event.clientX;
+                previousMouseY = event.clientY;
+            } else {
+                // Parallax effect on mouse move (when not dragging)
+                mouseX = (event.clientX - windowHalfX) * 0.00005; // Smaller multiplier for subtle effect
+                mouseY = (event.clientY - windowHalfY) * 0.00005;
+            }
+        }
+        
+        // Touch Handlers (Maps touch events to dragging logic)
+        function onDocumentTouchStart(event) {
+            if (event.touches.length === 1) {
+                event.preventDefault();
+                isDragging = true;
+                previousMouseX = event.touches[0].pageX;
+                previousMouseY = event.touches[0].pageY;
+            }
+        }
+
+        function onDocumentTouchMove(event) {
+            if (isDragging && event.touches.length === 1) {
+                event.preventDefault();
+                const deltaX = event.touches[0].pageX - previousMouseX;
+                const deltaY = event.touches[0].pageY - previousMouseY;
+
+                // Rotate the camera based on drag
+                camera.rotation.y -= deltaX * 0.005;
+                camera.rotation.x -= deltaY * 0.005;
+
+                // Clamp vertical rotation to avoid flipping
+                camera.rotation.x = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, camera.rotation.x));
+
+
+                previousMouseX = event.touches[0].pageX;
+                previousMouseY = event.touches[0].pageY;
+            }
+        }
+        
+        function onDocumentTouchEnd() {
+            isDragging = false;
+        }
+
+        // --- ANIMATION LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // 1. Grid Movement (Simulating forward motion through the tunnel)
+            if (gridPlane) {
+                 gridPlane.position.z += 0.2; // Move forward
+                 if (gridPlane.position.z > 10) {
+                     // Reset the grid position once it passes the camera for an endless loop effect
+                     gridPlane.position.z = -50; 
+                 }
+                 // Update the second grid plane to maintain the tunnel effect
+                 scene.children[2].position.z = gridPlane.position.z;
+            }
+            
+            // 2. Camera Parallax/Drift
+            if (!isDragging) {
+                 // Subtle drift for parallax effect
+                 camera.rotation.y += mouseX;
+                 camera.rotation.x += mouseY;
+            }
+            
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
